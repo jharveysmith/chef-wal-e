@@ -2,6 +2,20 @@
 # Cookbook Name:: wal-e
 # Recipe:: default
 
+missing_attrs = %w{
+  aws_access_key
+  aws_secret_key
+  s3_bucket
+}.select do |attr|
+  node[:wal_e][attr].nil?
+end.map { |attr| "node[:wal_e][:#{attr}]" }
+
+if !missing_attrs.empty?
+  Chef::Application.fatal!([
+      "You must set #{missing_attrs.join(', ')}.",
+    ].join(' '))
+end
+
 #install packages
 node[:wal_e][:packages].each do |pkg|
   package pkg
@@ -39,7 +53,8 @@ end
 
 vars = {'AWS_ACCESS_KEY_ID'     => node[:wal_e][:aws_access_key],
         'AWS_SECRET_ACCESS_KEY' => node[:wal_e][:aws_secret_key],
-        'WALE_S3_PREFIX'        => node[:wal_e][:s3_prefix]}
+        'WALE_S3_PREFIX'        => "s3://#{node[:wal_e][:s3_bucket]}/#{node[:wal_e][:bkp_folder]}"
+}
 
 vars.each do |key, value|
   file "#{node[:wal_e][:env_dir]}/#{key}" do
